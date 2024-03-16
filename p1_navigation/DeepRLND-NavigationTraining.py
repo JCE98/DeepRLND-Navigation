@@ -13,7 +13,7 @@ from collections import deque
 import matplotlib.pyplot as plt
 from dqn_agent import Agent
 
-def dqn(env, agent, brain_name, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995):
+def dqn(env, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995):
     '''
     Deep Q-Learning
     
@@ -31,6 +31,12 @@ def dqn(env, agent, brain_name, n_episodes=2000, max_t=1000, eps_start=1.0, eps_
     scores = []                                            # list containing scores from each episode
     scores_window = deque(maxlen=100)                      # last 100 scores
     eps = eps_start                                        # initialize epsilon
+    brain_name = env.brain_names[0]
+    brain = env.brains[brain_name]
+    env_info = env.reset(train_mode=False)[brain_name]
+    action_size = brain.vector_action_space_size
+    state_size = len(env_info.vector_observations[0])
+    agent = Agent(state_size, action_size,seed=0)
     for i_episode in range(1, n_episodes+1):
         env_info = env.reset(train_mode=True)[brain_name]  # reset the environment in training mode
         state = env_info.vector_observations[0]            # get the current state
@@ -57,7 +63,8 @@ def dqn(env, agent, brain_name, n_episodes=2000, max_t=1000, eps_start=1.0, eps_
                   format(i_episode, np.mean(scores_window)))
         if np.mean(scores_window)>=200.0:                  #Checking if environment has been solved
             print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode-100, np.mean(scores_window)))
-            torch.save(agent.qnetwork_local.state_dict(), 'checkpoint.pth')
+            if not os.path.exists(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S")): os.makedirs(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S"))
+            torch.save(agent.qnetwork_local.state_dict(), projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S")+'/checkpoint.pth')
             break
     return scores
 
@@ -74,6 +81,12 @@ def DemoTrainedAgent(env, agent, brain_name, agentFile, demoEpisodes=3, max_t=20
         demoEpisodes (int): maximum number of demonstration episodes
         max_t (int): maximum number of time steps per episode
     '''
+    brain_name = env.brain_names[0]
+    brain = env.brains[brain_name]
+    env_info = env.reset(train_mode=False)[brain_name]
+    action_size = brain.vector_action_space_size
+    state_size = len(env_info.vector_observations[0])
+    agent = Agent(state_size, action_size,seed=0)
     agent.qnetwork_local.load_state_dict(torch.load(agentFile))
     for i_episode in range(demoEpisodes):
         env_info = env.reset(train_mode=False)[brain_name] # reset the environment in demonstration mode
@@ -95,33 +108,12 @@ if __name__ == "__main__":
     projectFilesPath = os.path.dirname(sys.argv[0])
     env = UnityEnvironment(file_name = projectFilesPath + "/Banana_Windows_x86_64/Banana.exe")
 
-    #Get the default brain
-    brain_name = env.brain_names[0]
-    brain = env.brains[brain_name]
-
-    # reset the environment
-    print("\n")
-    env_info = env.reset(train_mode=False)[brain_name]
-
-    # environment details
-    print('\nNumber of agents:', len(env_info.agents))
-    action_size = brain.vector_action_space_size
-    print('Number of actions:', action_size)
-    state = env_info.vector_observations[0]
-    print('States look like:', state)
-    state_size = len(state)
-    print('States have length:', state_size)
-    print("\n")
-
-    #Agent Creation
-    agent = Agent(state_size,action_size,seed=0)
-
     #Training or Demonstration
     while True:
         response = input("Would you like to train a new agent from scratch, or demonstrate a trained agent? (train or demo): ")
         if response == "train":
             #Train Agent
-            scores = dqn(env,agent,brain_name=env.brain_names[0])
+            scores = dqn(env)
 
             #Plotting Training Results
             fig = plt.figure()
@@ -130,7 +122,8 @@ if __name__ == "__main__":
             plt.ylabel('Score')
             plt.xlabel('Episode #')
             plt.show()
-            plt.savefig(time.strftime("%Y%m%d-%H%M%S")+"-training.png")
+            if not os.path.exists(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S")): os.makedirs(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S"))
+            plt.savefig(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S")+"/training.png")
             break
         elif response == "demo":
             #Demonstrate Trained Agent
@@ -140,7 +133,7 @@ if __name__ == "__main__":
                     input("The file path you entered could not be found. Please check the path and try again: ")
                 else:
                     break
-            DemoTrainedAgent(env,agent,brain_name,agentFile)
+            DemoTrainedAgent(env, agentFile)
             break
         else:
             response = input("Please enter a valid response (demo or train): ")
