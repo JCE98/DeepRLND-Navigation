@@ -61,7 +61,7 @@ def dqn(env, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay
         if i_episode % 100 == 0:                           #Taking an average score every 100 episodes
             print('\rEpisode {}\tAverage Score: {:.2f}'.\
                   format(i_episode, np.mean(scores_window)))
-        if np.mean(scores_window)>=200.0:                  #Checking if environment has been solved
+        if np.mean(scores_window)>=13.0:                  #Checking if environment has been solved
             print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode-100, np.mean(scores_window)))
             if not os.path.exists(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S")): os.makedirs(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S"))
             torch.save(agent.qnetwork_local.state_dict(), projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S")+'/checkpoint.pth')
