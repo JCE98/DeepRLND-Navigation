@@ -20,8 +20,6 @@ def dqn(env, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay
     Params
     ======
         env (user-defined Unity-ML environment class): Unity-ML environment in which the agent is to be trained
-        agent (user-defined Agent class): defines agent's interaction with the environment
-        brain_name (str): name of the brain deciding the agent's actions in the environment
         n_episodes (int): maximum number of training episodes
         max_t (int): maximum number of timesteps per episode
         eps_start (float): starting value of epsilon, for epsilon-greedy action selection
@@ -45,7 +43,6 @@ def dqn(env, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay
             action = agent.act(state, eps)                 # agent takes action
             action = action.astype(np.int32)
             env_info = env.step(action)[brain_name]        # send the action to the environment
-            #TODO: Log states, actions, and rewards for policy development
             next_state = env_info.vector_observations[0]   # get the next state
             reward = env_info.rewards[0]                   # get the reward
             done = env_info.local_done[0]                  # see if episode has finished
@@ -68,27 +65,29 @@ def dqn(env, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay
             break
     return scores
 
-def DemoTrainedAgent(env, agent, brain_name, agentFile, demoEpisodes=3, max_t=200):
+def DemoTrainedAgent(env, agentFile, demoEpisodes=3, max_t=200):
     '''
     Demonstrate Trained Agent Performance
     
     Params
     ======
         env (user-defined Unity-ML environment class): Unity-ML environment in which the agent is to be trained
-        agent (user-defined Agent class): defines agent's interaction with the environment
-        brain_name (str): name of the brain deciding the agent's actions in the environment
         agentFile (str): path to the trained agent checkpoint .pth file that contains the trained weights
         demoEpisodes (int): maximum number of demonstration episodes
         max_t (int): maximum number of time steps per episode
     '''
+    scores = []                                            # list containing scores from each episode
+    scores_window = deque(maxlen=100)                      # last 100 scores
     brain_name = env.brain_names[0]
     brain = env.brains[brain_name]
     env_info = env.reset(train_mode=False)[brain_name]
     action_size = brain.vector_action_space_size
     state_size = len(env_info.vector_observations[0])
+    state_dict = torch.load(agentFile)
     agent = Agent(state_size, action_size,seed=0)
+    agent.setFClayerNeurons(fc1_units=state_dict['fc1.weight'].shape[0], fc2_units=state_dict['fc2.weight'].shape[0])
     agent.qnetwork_local.load_state_dict(torch.load(agentFile))
-    for i_episode in range(demoEpisodes):
+    for i_episode in range(1,demoEpisodes+1):
         env_info = env.reset(train_mode=False)[brain_name] # reset the environment in demonstration mode
         state = env_info.vector_observations[0]            # get the current state
         score = 0                                          # initialize score
@@ -97,10 +96,23 @@ def DemoTrainedAgent(env, agent, brain_name, agentFile, demoEpisodes=3, max_t=20
             action = action.astype(np.int32)
             env_info = env.step(action)[brain_name]        # send the action to the environment
             next_state = env_info.vector_observations[0]   # get the next state
+            reward = env_info.rewards[0]                   # get the reward
             done = env_info.local_done[0]                  # see if episode has finished
+            score += reward                                # update the score
             state = next_state                             # roll over the state to next time step
             if done:                                       # exit loop if episode finished
                 break
+        scores_window.append(score)                        # save most recent score
+        scores.append(score)                               # save most recent score
+        print('\rEpisode {}\tAverage Score: {:.2f}'.\
+              format(i_episode, np.mean(scores_window)), end="")
+        if i_episode % 100 == 0:                           #Taking an average score every 100 episodes
+            print('\rEpisode {}\tAverage Score: {:.2f}'.\
+                  format(i_episode, np.mean(scores_window)))
+        if np.mean(scores_window)>=13.0:                   #Checking if environment has been solved
+            print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode-100, np.mean(scores_window)))
+            break
+    return scores
 
 
 if __name__ == "__main__":
@@ -114,26 +126,28 @@ if __name__ == "__main__":
         if response == "train":
             #Train Agent
             scores = dqn(env)
-
-            #Plotting Training Results
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            plt.plot(np.arange(len(scores)), scores)
-            plt.ylabel('Score')
-            plt.xlabel('Episode #')
-            if not os.path.exists(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S")): os.makedirs(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S"))
-            plt.savefig(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S")+"/training.png")
+            filename = "training"
             break
         elif response == "demo":
             #Demonstrate Trained Agent
             while True:
-                agentFile = input("Enter the path to the trained agent checkpoint .pth file: ")
+                agentFile = input("Enter the path to the trained agent checkpoint .pth file: ").replace("\\","/")
                 if not os.path.exists(agentFile):
-                    input("The file path you entered could not be found. Please check the path and try again: ")
+                    print("The file path you entered could not be found. Please check the path and try again.")
                 else:
+                    print("Loading agent checkpoint at %s..." % agentFile)
                     break
-            DemoTrainedAgent(env, agentFile)
+            filename = "demo"
+            scores = DemoTrainedAgent(env, agentFile)
             break
         else:
             response = input("Please enter a valid response (demo or train): ")
     env.close()
+    #Plotting Training/Demo Results
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    plt.plot(np.arange(len(scores)), scores)
+    plt.ylabel('Score')
+    plt.xlabel('Episode #')
+    if not os.path.exists(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S")): os.makedirs(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S"))
+    plt.savefig(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S")+"/"+filename+".png")
