@@ -43,6 +43,10 @@ class Agent():
         # Initialize time step (for updating every UPDATE_EVERY steps)
         self.t_step = 0
     
+    def change_architecture(self,fc1_units,fc2_units):
+        self.qnetwork_local = QNetwork(self.state_size, self.action_size, seed=0, fc1_units=fc1_units, fc2_units=fc2_units).to(device)
+        self.qnetwork_target = QNetwork(self.state_size, self.action_size, seed=0, fc1_units=fc1_units, fc2_units=fc2_units).to(device)
+
     def step(self, state, action, reward, next_state, done):
         # Save experience in replay memory
         self.memory.add(state, action, reward, next_state, done)
