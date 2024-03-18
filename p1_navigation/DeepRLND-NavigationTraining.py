@@ -46,6 +46,7 @@ def dqn(env, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay
             next_state = env_info.vector_observations[0]   # get the next state
             reward = env_info.rewards[0]                   # get the reward
             done = env_info.local_done[0]                  # see if episode has finished
+            agent.step(state,action,reward,next_state,done)# update agent action value function
             score += reward                                # update the score
             state = next_state                             # roll over the state to next time step
             if done:                                       # exit loop if episode finished
