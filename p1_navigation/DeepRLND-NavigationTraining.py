@@ -46,7 +46,7 @@ def dqn(env, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay
             next_state = env_info.vector_observations[0]   # get the next state
             reward = env_info.rewards[0]                   # get the reward
             done = env_info.local_done[0]                  # see if episode has finished
-            agent.step(state,action,reward,next_state,done)# update agent action value function
+            agent.step(state,action,reward,next_state,done)# update agent action value function 
             score += reward                                # update the score
             state = next_state                             # roll over the state to next time step
             if done:                                       # exit loop if episode finished
@@ -60,9 +60,9 @@ def dqn(env, n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay
             print('\rEpisode {}\tAverage Score: {:.2f}'.\
                   format(i_episode, np.mean(scores_window)))
         if np.mean(scores_window)>=13.0:                  #Checking if environment has been solved
-            print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode-100, np.mean(scores_window)))
+            print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode, np.mean(scores_window)))
             if not os.path.exists(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S")): os.makedirs(projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S"))
-            torch.save(agent.qnetwork_local.state_dict(), projectFilesPath+"/results/"+time.strftime("%Y%m%d-%H%M%S")+'/checkpoint.pth')
+            torch.save(agent.qnetwork_local.state_dict(), "/".join([projectFilesPath,'results',time.strftime("%Y%m%d-%H%M%S"),'checkpoint.pth']))
             break
     return scores
 
